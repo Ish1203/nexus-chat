@@ -1,3 +1,4 @@
+import email
 import os, uuid, random, string, json, base64, io
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -190,6 +191,9 @@ def send_otp_email(email, otp, purpose='login'):
           </div>
         </div>"""
         msg = MailMsg(f"Nexus {labels.get(purpose,'')}: {otp}", recipients=[email], html=body)
+        print("MAIL_USERNAME =", app.config['MAIL_USERNAME'])
+        print("MAIL_PASSWORD LENGTH =", len(app.config['MAIL_PASSWORD']))
+        print("Sending OTP to:", email)
         mail.send(msg)
         return True
     except Exception as e:
