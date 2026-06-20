@@ -20,7 +20,6 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "pool_pre_ping": True,
     "pool_recycle": 300
 }
-
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
