@@ -203,7 +203,12 @@ def send_otp_email(email, otp, purpose='login'):
         print("MAIL_USERNAME =", app.config['MAIL_USERNAME'])
         print("MAIL_PASSWORD LENGTH =", len(app.config['MAIL_PASSWORD']))
         print("Sending OTP to:", email)
-        mail.send(msg)
+        # mail.send(msg)
+        # return True
+        with mail.connect() as conn:
+            conn.send(msg)
+
+        print("OTP email sent successfully!")
         return True
     except Exception as e:
         print(f"Mail error: {e}")
