@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed"/>
+      <stop offset="50%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#ec4899"/>
+    </linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#7c3aed" flood-opacity="0.5"/></filter>
+    <clipPath id="clip"><rect width="200" height="200" rx="44"/></clipPath>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#bg)" filter="url(#shadow)"/>
+  <ellipse cx="100" cy="30" rx="70" ry="25" fill="white" opacity="0.08"/>
+  <g clip-path="url(#clip)">
+    <rect x="44" y="54" width="22" height="92" rx="8" fill="white" opacity="0.95"/>
+    <rect x="134" y="54" width="22" height="92" rx="8" fill="white" opacity="0.95"/>
+    <polygon points="44,54 66,54 156,146 134,146" fill="white" opacity="0.95"/>
+    <circle cx="152" cy="60" r="13" fill="#ec4899"/>
+    <circle cx="152" cy="60" r="8" fill="white" opacity="0.9"/>
+  </g>
+</svg>

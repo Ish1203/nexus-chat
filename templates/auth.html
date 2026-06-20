@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus — {% if page=='login' %}Sign In{% elif page=='register' %}Create Account{% else %}Verify{% endif %}</title>
+<link rel="icon" href="/static/nexus-favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#04040e;--s1:rgba(255,255,255,0.04);--s2:rgba(255,255,255,0.07);--b1:rgba(255,255,255,0.1);--b2:rgba(255,255,255,0.2);--accent:#8b5cf6;--pink:#ec4899;--text:#fff;--muted:rgba(255,255,255,0.4);--error:#f87171;--green:#34d399}
+[data-theme="light"]{--bg:#f0f0f8;--s1:rgba(0,0,0,0.03);--s2:rgba(0,0,0,0.06);--b1:rgba(0,0,0,0.1);--b2:rgba(0,0,0,0.18);--text:#0a0a18;--muted:rgba(0,0,0,0.4)}
+html,body{height:100%}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;align-items:center;justify-content:center;transition:background 0.3s;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(139,92,246,0.3) transparent}
+body::-webkit-scrollbar{width:6px}
+body::-webkit-scrollbar-track{background:transparent}
+body::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.25);border-radius:10px}
+body::-webkit-scrollbar-thumb:hover{background:rgba(139,92,246,0.45)}
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(139,92,246,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,0.05) 1px,transparent 1px);background-size:50px 50px}
+.orb{position:absolute;border-radius:50%;filter:blur(120px);animation:drift 10s ease-in-out infinite alternate}
+.o1{width:700px;height:700px;background:radial-gradient(circle,rgba(139,92,246,0.18),transparent 70%);top:-250px;left:-250px}
+.o2{width:600px;height:600px;background:radial-gradient(circle,rgba(236,72,153,0.12),transparent 70%);bottom:-200px;right:-200px;animation-delay:-5s}
+@keyframes drift{0%{transform:translate(0,0)}100%{transform:translate(20px,15px)}}
+.wrap{position:relative;z-index:2;width:100%;max-width:440px;padding:20px;margin:auto}
+.card-3d{animation:float3d 8s ease-in-out infinite;transform-style:preserve-3d}
+@keyframes float3d{0%,100%{transform:perspective(1000px) rotateX(1deg) rotateY(-1deg) translateY(0)}50%{transform:perspective(1000px) rotateX(-0.5deg) rotateY(1deg) translateY(-8px)}}
+.logo{text-align:center;margin-bottom:26px}
+.logo-icon{width:66px;height:66px;border-radius:21px;background:linear-gradient(135deg,#7c3aed,#ec4899);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 0 50px rgba(139,92,246,0.45);overflow:hidden}
+.logo-icon img{width:100%;height:100%;object-fit:cover}
+.logo h1{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--text) 0%,#c4b5fd 40%,#f9a8d4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px;margin-bottom:4px}
+.logo p{color:var(--muted);font-size:13px}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:26px;padding:30px;backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);box-shadow:0 0 0 1px rgba(255,255,255,0.04) inset,0 40px 80px rgba(0,0,0,0.5);position:relative;overflow:hidden}
+[data-theme="light"] .card{background:rgba(255,255,255,0.85);border-color:rgba(0,0,0,0.08);box-shadow:0 20px 60px rgba(139,92,246,0.12)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)}
+.tabs{display:flex;gap:3px;background:rgba(0,0,0,0.25);border:1px solid var(--b1);border-radius:15px;padding:4px;margin-bottom:26px}
+.tab{flex:1;text-align:center;padding:9px;border-radius:12px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;text-decoration:none;transition:all 0.25s;display:flex;align-items:center;justify-content:center;gap:6px}
+.tab.active{background:linear-gradient(135deg,rgba(139,92,246,0.35),rgba(236,72,153,0.2));border:1px solid rgba(139,92,246,0.4);color:var(--text)}
+.f{margin-bottom:15px}
+.f label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:7px}
+.iw{position:relative}
+.iw .ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--muted);pointer-events:none}
+input{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--b1);border-radius:13px;padding:12px 14px 12px 40px;color:var(--text);font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:all 0.2s}
+[data-theme="light"] input{background:rgba(255,255,255,0.9)}
+input:focus{border-color:rgba(139,92,246,0.7);background:rgba(139,92,246,0.08);box-shadow:0 0 0 3px rgba(139,92,246,0.15)}
+input::placeholder{color:var(--muted)}
+.hint{font-size:11px;color:var(--muted);margin-top:5px;padding-left:2px;display:flex;align-items:center;gap:4px}
+.err{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);color:var(--error);padding:11px 14px;border-radius:12px;font-size:13px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.btn{width:100%;padding:13px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:none;border-radius:13px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;box-shadow:0 4px 24px rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(139,92,246,0.55)}
+.btn:active{transform:scale(0.99)}
+.btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-bio{width:100%;padding:11px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:12px;color:#34d399;font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;display:none;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;margin-top:10px}
+.btn-bio.show{display:flex}
+.btn-bio:hover{background:rgba(52,211,153,0.18)}
+.otp-head{text-align:center;margin-bottom:22px}
+.otp-ico{font-size:40px;color:var(--accent);margin-bottom:12px;display:block}
+.otp-head h3{font-size:18px;font-weight:700;margin-bottom:6px}
+.otp-head p{font-size:13px;color:var(--muted);line-height:1.6}
+.email-hl{color:var(--accent);font-weight:600}
+.otp-boxes{display:flex;gap:10px;justify-content:center;margin:22px 0}
+.otp-boxes input{width:52px;height:60px;text-align:center;font-size:26px;font-weight:700;padding:0;border-radius:14px;letter-spacing:0}
+.timer{text-align:center;font-size:12px;color:var(--muted);margin-top:10px}
+.timer strong{color:var(--accent)}
+.resend{background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline;display:none;margin-top:8px}
+.foot{text-align:center;margin-top:20px;font-size:12px;color:var(--muted)}
+.foot a{color:#c4b5fd;text-decoration:none;font-weight:500}
+.theme-btn{position:fixed;top:20px;right:20px;z-index:100;background:var(--s2);border:1px solid var(--b1);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;color:var(--muted);font-size:16px}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="bg"><div class="grid"></div><div class="orb o1"></div><div class="orb o2"></div></div>
+<button class="theme-btn" onclick="toggleTheme()" id="themeBtn"><i class="fa-solid fa-moon" id="themeIco"></i></button>
+
+<div class="wrap">
+  <div class="card-3d">
+    <div class="logo">
+      <div class="logo-icon"><img src="/static/nexus-logo.svg" alt="N" onerror="this.parentElement.innerHTML='<span style=font-size:28px>💬</span>'"></div>
+      <h1>Nexus</h1>
+      <p>The future of conversation</p>
+    </div>
+    <div class="card">
+      {% if page in ['login','register'] %}
+      <div class="tabs">
+        <a href="/login" class="tab {% if page=='login' %}active{% endif %}"><i class="fa-solid fa-right-to-bracket"></i> Sign In</a>
+        <a href="/register" class="tab {% if page=='register' %}active{% endif %}"><i class="fa-solid fa-user-plus"></i> Register</a>
+      </div>
+      {% endif %}
+
+      {% if error %}<div class="err"><i class="fa-solid fa-triangle-exclamation"></i> {{ error }}</div>{% endif %}
+
+      {% if page == 'login' %}
+      <form method="POST">
+        <div class="f"><label><i class="fa-solid fa-at"></i> Email / Phone / Username</label>
+          <div class="iw"><i class="ico fa-solid fa-at"></i><input name="identifier" type="text" placeholder="Enter your identifier" required autocomplete="username"></div></div>
+        <div class="f"><label><i class="fa-solid fa-lock"></i> Password</label>
+          <div class="iw"><i class="ico fa-solid fa-lock"></i>
+            <input name="password" type="password" id="pwdIn" placeholder="Your password" required autocomplete="current-password" style="padding-right:44px">
+            <i class="fa-regular fa-eye" id="eyeBtn" style="position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:15px;color:var(--muted)" onclick="togglePwd()"></i>
+          </div></div>
+        <button type="submit" class="btn"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+      </form>
+      <button class="btn-bio" id="bioBtn" onclick="biometricLogin()"><i class="fa-solid fa-fingerprint"></i> Login with Biometric</button>
+      <div class="foot">No account? <a href="/register">Create one free</a></div>
+
+      {% elif page == 'register' %}
+      <form method="POST">
+        <input type="hidden" name="step" value="info">
+        <div class="f"><label><i class="fa-solid fa-user"></i> Username</label>
+          <div class="iw"><i class="ico fa-solid fa-user"></i><input name="username" type="text" placeholder="Choose a unique username" required minlength="3" autocomplete="username"></div></div>
+        <div class="f"><label><i class="fa-solid fa-envelope"></i> Email <span style="font-weight:400;text-transform:none;font-size:10px;margin-left:4px">(recommended for OTP)</span></label>
+          <div class="iw"><i class="ico fa-solid fa-envelope"></i><input name="email" type="email" placeholder="your@email.com" autocomplete="email"></div>
+          <div class="hint"><i class="fa-solid fa-shield-halved" style="color:var(--accent);font-size:10px"></i> Used for OTP verification and account recovery</div></div>
+        <div class="f"><label><i class="fa-solid fa-phone"></i> Phone <span style="font-weight:400;text-transform:none;font-size:10px;margin-left:4px">(optional)</span></label>
+          <div class="iw"><i class="ico fa-solid fa-phone"></i><input name="phone" type="tel" placeholder="+91 9876543210" autocomplete="tel"></div></div>
+        <div class="f"><label><i class="fa-solid fa-lock"></i> Password</label>
+          <div class="iw"><i class="ico fa-solid fa-lock"></i><input name="password" type="password" placeholder="Min 6 characters" required minlength="6" autocomplete="new-password"></div></div>
+        <button type="submit" class="btn"><i class="fa-solid fa-user-plus"></i> Create Account</button>
+      </form>
+      <div class="foot">Already have an account? <a href="/login">Sign in</a></div>
+
+      {% elif page == 'verify_register' %}
+      <div class="otp-head">
+        <i class="otp-ico fa-solid fa-envelope-open-text"></i>
+        <h3>Check your inbox</h3>
+        <p>We sent a 6-digit code to<br><span class="email-hl">{{ email }}</span><br><small style="font-size:11px;opacity:0.6">Check spam folder too</small></p>
+      </div>
+      <form method="POST" id="otpForm">
+        <input type="hidden" name="step" value="verify">
+        <input type="hidden" name="otp" id="otpHidden">
+        <div class="otp-boxes">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+        </div>
+        <button type="submit" class="btn" id="verifyBtn" disabled><i class="fa-solid fa-shield-check"></i> Verify &amp; Create Account</button>
+      </form>
+      <div class="timer">Expires in <strong id="timerEl">10:00</strong></div>
+      <div style="text-align:center"><button class="resend" id="resendBtn" onclick="resendOTP('{{ email }}','register')"><i class="fa-solid fa-rotate-right"></i> Resend code</button></div>
+
+      {% elif page == 'verify_2fa' %}
+      <div class="otp-head">
+        <i class="otp-ico fa-solid fa-shield-halved" style="color:#34d399"></i>
+        <h3>Two-Factor Authentication</h3>
+        <p>Enter the code sent to<br><span class="email-hl">{{ email }}</span></p>
+      </div>
+      <form method="POST" id="otpForm">
+        <input type="hidden" name="otp" id="otpHidden">
+        <div class="otp-boxes">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-d" inputmode="numeric">
+        </div>
+        <button type="submit" class="btn" id="verifyBtn" disabled><i class="fa-solid fa-unlock-keyhole"></i> Verify &amp; Sign In</button>
+      </form>
+      <div class="timer">Expires in <strong id="timerEl">10:00</strong></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<script>
+function toggleTheme(){const h=document.documentElement,d=h.dataset.theme==='dark';h.dataset.theme=d?'light':'dark';document.getElementById('themeIco').className=d?'fa-solid fa-sun':'fa-solid fa-moon';localStorage.setItem('nx-theme',h.dataset.theme)}
+(()=>{const t=localStorage.getItem('nx-theme')||'dark';document.documentElement.dataset.theme=t;const i=document.getElementById('themeIco');if(i)i.className=t==='dark'?'fa-solid fa-moon':'fa-solid fa-sun'})();
+function togglePwd(){const i=document.getElementById('pwdIn'),e=document.getElementById('eyeBtn');if(!i)return;i.type=i.type==='password'?'text':'password';e.className=i.type==='password'?'fa-regular fa-eye':'fa-regular fa-eye-slash'}
+(()=>{const k=localStorage.getItem('nx-bio-key'),b=document.getElementById('bioBtn');if(k&&b)b.classList.add('show')})();
+async function biometricLogin(){const k=localStorage.getItem('nx-bio-key');if(!k)return;const r=await fetch('/api/biometric/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k})}).then(x=>x.json());if(r.success)window.location=r.redirect;else alert('Biometric failed. Use password.')}
+const digits=document.querySelectorAll('.otp-d'),hidden=document.getElementById('otpHidden'),verBtn=document.getElementById('verifyBtn');
+digits.forEach((inp,i)=>{
+  inp.addEventListener('input',e=>{inp.value=e.target.value.replace(/\D/g,'');if(inp.value&&i<digits.length-1)digits[i+1].focus();sync()});
+  inp.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!inp.value&&i>0)digits[i-1].focus()});
+  inp.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'');[...t].slice(0,6).forEach((c,j)=>{if(digits[j])digits[j].value=c});sync();digits[Math.min(t.length,5)].focus()});
+});
+function sync(){const v=[...digits].map(d=>d.value).join('');if(hidden)hidden.value=v;if(verBtn)verBtn.disabled=v.length<6}
+let secs=600;const timerEl=document.getElementById('timerEl'),resendBtn=document.getElementById('resendBtn');
+if(timerEl){const t=setInterval(()=>{secs--;const m=Math.floor(secs/60),s=secs%60;timerEl.textContent=`${m}:${s.toString().padStart(2,'0')}`;if(secs<=0){clearInterval(t);timerEl.textContent='Expired';timerEl.style.color='#f87171';if(resendBtn)resendBtn.style.display='inline'}},1000)}
+async function resendOTP(email,purpose){await fetch('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,purpose})});secs=600;if(resendBtn)resendBtn.style.display='none';digits.forEach(d=>d.value='');if(verBtn)verBtn.disabled=true;alert('New code sent!')}
+</script>
+</body>
+</html>
