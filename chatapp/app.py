@@ -1,5 +1,4 @@
-import email
-import os, uuid, random, string, json, base64, io
+import os, uuid, random, string, json, base64, threading
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 load_dotenv()
@@ -16,24 +15,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nexus-dev-secret')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///nexus.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_pre_ping": True,
-    "pool_recycle": 300
-}
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True, "pool_recycle": 300}
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-app.config['MAIL_SERVER'] = 'smtp-relay.brevo.com'
+
+# ── Mail config — Gmail SMTP ────────────────────────────────────────────────
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
-
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-
-app.config['MAIL_DEFAULT_SENDER'] = (
-    'Nexus Chat',
-    os.environ.get('MAIL_USERNAME')
-)
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', 'noreply@nexus.app')
@@ -45,7 +34,18 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 mail = Mail(app)
 
-# Supabase client
+@app.errorhandler(Exception)
+def handle_all_errors(e):
+    import traceback
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
+    print("="*70)
+    print("UNHANDLED EXCEPTION:")
+    traceback.print_exc()
+    print("="*70)
+    return jsonify({'error': 'Internal server error', 'detail': str(e)}), 500
+
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
 SUPABASE_BUCKET = os.environ.get('SUPABASE_BUCKET', 'nexus-media')
@@ -135,7 +135,7 @@ class OTPStore(db.Model):
 class PinnedChat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    chat_type = db.Column(db.String(10))  # dm or room
+    chat_type = db.Column(db.String(10))
     chat_id = db.Column(db.Integer)
 
 class BlockedUser(db.Model):
@@ -162,7 +162,7 @@ def upload_to_supabase(file_bytes, filename, content_type='application/octet-str
         url = supabase.storage.from_(SUPABASE_BUCKET).get_public_url(path)
         return url
     except Exception as e:
-        print(f"Supabase upload error: {e}")
+        print(f"[SUPABASE UPLOAD ERROR] {e}")
         return None
 
 def generate_otp(email, purpose='login'):
@@ -181,8 +181,39 @@ def verify_otp(email, otp_input, purpose='login'):
     r.used = True; db.session.commit()
     return True, 'OK'
 
+def _send_mail_with_timeout(msg, timeout_seconds=8):
+    """Sends mail in a worker thread with a hard timeout, so a hanging/blocked
+    SMTP connection can NEVER freeze or crash the main request thread."""
+    result = {'ok': False, 'error': None}
+
+    def worker():
+        try:
+            with app.app_context():
+                mail.send(msg)
+            result['ok'] = True
+        except Exception as e:
+            result['error'] = str(e)
+
+    t = threading.Thread(target=worker, daemon=True)
+    t.start()
+    t.join(timeout=timeout_seconds)
+
+    if t.is_alive():
+        # Thread is still stuck trying to connect — abandon it (daemon thread
+        # will be killed when the process exits) and report failure immediately
+        # instead of hanging the whole web worker.
+        print(f"[MAIL TIMEOUT] SMTP connection did not respond within {timeout_seconds}s — abandoning send.")
+        return False
+    if result['error']:
+        print(f"[MAIL ERROR] {result['error']}")
+        return False
+    return result['ok']
+
 def send_otp_email(email, otp, purpose='login'):
     labels = {'login': 'Login', 'register': 'Verify Account', '2fa': '2FA'}
+    if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
+        print(f"[MAIL SKIPPED] No MAIL_USERNAME/MAIL_PASSWORD configured.")
+        return False
     try:
         body = f"""
         <div style="font-family:Inter,sans-serif;max-width:460px;margin:0 auto;background:#0a0a1a;border-radius:16px;overflow:hidden">
@@ -200,18 +231,9 @@ def send_otp_email(email, otp, purpose='login'):
           </div>
         </div>"""
         msg = MailMsg(f"Nexus {labels.get(purpose,'')}: {otp}", recipients=[email], html=body)
-        print("MAIL_USERNAME =", app.config['MAIL_USERNAME'])
-        print("MAIL_PASSWORD LENGTH =", len(app.config['MAIL_PASSWORD']))
-        print("Sending OTP to:", email)
-        # mail.send(msg)
-        # return True
-        with mail.connect() as conn:
-            conn.send(msg)
-
-        print("OTP email sent successfully!")
-        return True
+        return _send_mail_with_timeout(msg, timeout_seconds=8)
     except Exception as e:
-        print(f"Mail error: {e}")
+        print(f"[MAIL ERROR] Failed to build OTP email: {e}")
         return False
 
 def generate_qr_b64(user):
@@ -223,16 +245,6 @@ def generate_qr_b64(user):
     buf = io.BytesIO(); img.save(buf, format='PNG')
     b64 = base64.b64encode(buf.getvalue()).decode()
     return f"data:image/png;base64,{b64}"
-
-def socket_room_for(room_id=None, dm_to=None, user_a=None, user_b=None):
-    """Safely compute the socket.io room name. Never crashes on None values."""
-    if room_id:
-        return f'room_{room_id}'
-    a = user_a if user_a is not None else None
-    b = dm_to if dm_to is not None else user_b
-    if a is not None and b is not None:
-        return f'dm_{min(a,b)}_{max(a,b)}'
-    return None
 
 def msg_to_dict(m):
     try: reactions = json.loads(m.reactions or '{}')
@@ -261,6 +273,15 @@ def msg_to_dict(m):
         'dm_to': m.dm_to,
     }
 
+def socket_room_for(room_id=None, dm_to=None, user_a=None, user_b=None):
+    if room_id:
+        return f'room_{room_id}'
+    a = user_a if user_a is not None else None
+    b = dm_to if dm_to is not None else user_b
+    if a is not None and b is not None:
+        return f'dm_{min(a,b)}_{max(a,b)}'
+    return None
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 @app.route('/')
 def index(): return redirect(url_for('chat') if current_user.is_authenticated else url_for('login'))
@@ -282,8 +303,7 @@ def login():
             if not sent: print(f"\n[DEV] 2FA OTP for {user.email}: {otp}\n")
             session['pending_2fa_user'] = user.id
             return redirect(url_for('verify_2fa'))
-        login_user(user, remember=True)
-        user.is_online = True; db.session.commit()
+        login_user(user, remember=True); user.is_online = True; db.session.commit()
         return redirect(url_for('chat'))
     return render_template('auth.html', page='login')
 
@@ -297,8 +317,7 @@ def verify_2fa():
         ok, msg = verify_otp(user.email, request.form.get('otp', '').strip(), '2fa')
         if not ok: return render_template('auth.html', page='verify_2fa', error=msg, email=user.email)
         session.pop('pending_2fa_user', None)
-        login_user(user, remember=True)
-        user.is_online = True; db.session.commit()
+        login_user(user, remember=True); user.is_online = True; db.session.commit()
         return redirect(url_for('chat'))
     return render_template('auth.html', page='verify_2fa', email=user.email)
 
@@ -324,13 +343,11 @@ def register():
                 sent = send_otp_email(email, otp, 'register')
                 if not sent: print(f"\n[DEV] Register OTP for {email}: {otp}\n")
                 return render_template('auth.html', page='verify_register', email=email)
-            # No email — register directly
             hashed = bcrypt.generate_password_hash(password).decode('utf-8')
             user = User(username=username, phone=phone or None, password=hashed, is_verified=True)
             db.session.add(user); db.session.commit()
             user.qr_code = generate_qr_b64(user); db.session.commit()
-            login_user(user, remember=True)
-            user.is_online = True; db.session.commit()
+            login_user(user, remember=True); user.is_online = True; db.session.commit()
             return redirect(url_for('chat'))
         elif step == 'verify':
             reg = session.get('reg', {})
@@ -343,54 +360,30 @@ def register():
             db.session.add(user); db.session.commit()
             user.qr_code = generate_qr_b64(user); db.session.commit()
             session.pop('reg', None)
-            login_user(user, remember=True)
-            user.is_online = True; db.session.commit()
+            login_user(user, remember=True); user.is_online = True; db.session.commit()
             return redirect(url_for('chat'))
     return render_template('auth.html', page='register')
 
 @app.route('/logout')
 @login_required
 def logout():
-    current_user.is_online = False
-    current_user.last_seen = datetime.utcnow()
+    current_user.is_online = False; current_user.last_seen = datetime.utcnow()
     db.session.commit(); logout_user()
     return redirect(url_for('login'))
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
-# @app.route('/chat')
-# @login_required
-# def chat():
-#     rooms = Room.query.filter(Room.members.any(id=current_user.id)).all()
-#     return render_template('chat.html', rooms=rooms, current_user=current_user)
-
 @app.route('/chat')
 @login_required
 def chat():
-    rooms = Room.query.filter(
-        Room.members.any(id=current_user.id)
-    ).all()
+    rooms = Room.query.filter(Room.members.any(id=current_user.id)).all()
+    return render_template('chat.html', rooms=rooms, current_user=current_user)
 
-    room_data = [
-        {
-            "id": room.id,
-            "name": room.name,
-            "description": room.description or ""
-        }
-        for room in rooms
-    ]
-
-    return render_template(
-        'chat.html',
-        rooms=room_data,
-        current_user=current_user
-    )
-
-# ── API: Rooms ────────────────────────────────────────────────────────────────
+# ── Rooms API ─────────────────────────────────────────────────────────────────
 @app.route('/api/rooms', methods=['POST'])
 @login_required
 def create_room():
     d = request.json
-    room = Room(name=d['name'], description=d.get('description', ''),
+    room = Room(name=d['name'], description=d.get('description',''),
                 created_by=current_user.id, is_group=d.get('is_group', False))
     room.members.append(current_user)
     for uid in (d.get('member_ids') or []):
@@ -426,7 +419,7 @@ def search_rooms():
     rooms = Room.query.filter(Room.name.ilike(f'%{q}%'), Room.is_private == False).limit(10).all()
     return jsonify([{'id': r.id, 'name': r.name, 'description': r.description} for r in rooms])
 
-# ── API: DMs ──────────────────────────────────────────────────────────────────
+# ── DM API ────────────────────────────────────────────────────────────────────
 @app.route('/api/dm/<int:uid>/messages')
 @login_required
 def dm_messages(uid):
@@ -444,7 +437,7 @@ def dm_messages(uid):
     db.session.commit()
     return jsonify([msg_to_dict(m) for m in msgs])
 
-# ── API: Messages ─────────────────────────────────────────────────────────────
+# ── Messages API ──────────────────────────────────────────────────────────────
 @app.route('/api/messages/<int:mid>/delete', methods=['POST'])
 @login_required
 def delete_message(mid):
@@ -452,7 +445,7 @@ def delete_message(mid):
     if m.user_id != current_user.id: return jsonify({'error': 'Unauthorized'}), 403
     m.is_deleted = True; db.session.commit()
     room = socket_room_for(m.room_id, m.dm_to, m.user_id)
-    socketio.emit('message_deleted', {'msg_id': mid}, room=room)
+    if room: socketio.emit('message_deleted', {'msg_id': mid}, room=room)
     return jsonify({'success': True})
 
 @app.route('/api/messages/<int:mid>/react', methods=['POST'])
@@ -468,7 +461,7 @@ def react_message(mid):
     if not reactions[emoji]: del reactions[emoji]
     m.reactions = json.dumps(reactions); db.session.commit()
     room = socket_room_for(m.room_id, m.dm_to, m.user_id)
-    socketio.emit('reaction_update', {'msg_id': mid, 'reactions': reactions}, room=room)
+    if room: socketio.emit('reaction_update', {'msg_id': mid, 'reactions': reactions}, room=room)
     return jsonify({'reactions': reactions})
 
 @app.route('/api/messages/<int:mid>/pin', methods=['POST'])
@@ -506,7 +499,7 @@ def search_messages():
         )
     return jsonify([msg_to_dict(m) for m in query.order_by(Message.timestamp.desc()).limit(20).all()])
 
-# ── API: Upload ───────────────────────────────────────────────────────────────
+# ── Upload API ────────────────────────────────────────────────────────────────
 @app.route('/api/upload', methods=['POST'])
 @login_required
 def upload_file():
@@ -519,7 +512,7 @@ def upload_file():
     fname = f"{uuid.uuid4()}_{f.filename}"
     file_bytes = f.read()
     url = upload_to_supabase(file_bytes, fname, f.content_type or 'application/octet-stream')
-    if not url: return jsonify({'error': 'Upload failed'}), 500
+    if not url: return jsonify({'error': 'Upload failed — check Supabase storage bucket and policies'}), 500
     final_type = 'view_once' if view_once else msg_type
     msg = Message(content=url, msg_type=final_type, user_id=current_user.id,
                   room_id=int(room_id) if room_id else None,
@@ -527,9 +520,8 @@ def upload_file():
                   file_name=f.filename, file_size=len(file_bytes))
     db.session.add(msg); db.session.commit()
     payload = msg_to_dict(msg)
-    if msg.room_id: socketio.emit('new_message', payload, room=f'room_{msg.room_id}')
-    elif msg.dm_to:
-        socketio.emit('new_message', payload, room=socket_room_for(None, msg.dm_to, current_user.id))
+    room = socket_room_for(msg.room_id, msg.dm_to, current_user.id)
+    if room: socketio.emit('new_message', payload, room=room)
     return jsonify({'success': True, 'url': url})
 
 @app.route('/api/voice', methods=['POST'])
@@ -540,17 +532,16 @@ def upload_voice():
     audio_bytes = base64.b64decode(audio_b64.split(',')[-1])
     fname = f"{uuid.uuid4()}.webm"
     url = upload_to_supabase(audio_bytes, fname, 'audio/webm')
-    if not url: return jsonify({'error': 'Upload failed'}), 500
+    if not url: return jsonify({'error': 'Upload failed — check Supabase storage bucket and policies'}), 500
     msg = Message(content=url, msg_type='voice', user_id=current_user.id,
                   room_id=d.get('room_id'), dm_to=d.get('dm_to'))
     db.session.add(msg); db.session.commit()
     payload = msg_to_dict(msg)
-    if msg.room_id: socketio.emit('new_message', payload, room=f'room_{msg.room_id}')
-    elif msg.dm_to:
-        socketio.emit('new_message', payload, room=socket_room_for(None, msg.dm_to, current_user.id))
+    room = socket_room_for(msg.room_id, msg.dm_to, current_user.id)
+    if room: socketio.emit('new_message', payload, room=room)
     return jsonify({'success': True})
 
-# ── API: Stories ──────────────────────────────────────────────────────────────
+# ── Stories API ───────────────────────────────────────────────────────────────
 @app.route('/api/stories', methods=['GET'])
 @login_required
 def get_stories():
@@ -571,7 +562,7 @@ def create_story():
     if 'file' in request.files:
         f = request.files['file']
         url = upload_to_supabase(f.read(), f"{uuid.uuid4()}_{f.filename}", f.content_type or 'image/jpeg')
-        if not url: return jsonify({'error': 'Upload failed'}), 500
+        if not url: return jsonify({'error': 'Upload failed — check Supabase storage bucket and policies'}), 500
         content, stype = url, 'image'
         bg = request.form.get('bg_color', '#0f172a')
     else:
@@ -601,7 +592,7 @@ def delete_story(sid):
     db.session.delete(s); db.session.commit()
     return jsonify({'success': True})
 
-# ── API: Users ────────────────────────────────────────────────────────────────
+# ── Users API ─────────────────────────────────────────────────────────────────
 @app.route('/api/users/search')
 @login_required
 def search_users():
@@ -639,7 +630,7 @@ def update_profile():
     if request.is_json:
         d = request.json
         if 'bio' in d: current_user.bio = d['bio']
-        if 'theme' in d and d['theme'] in ('dark', 'light'): current_user.theme = d['theme']
+        if 'theme' in d and d['theme'] in ('dark','light'): current_user.theme = d['theme']
         if 'chat_bg' in d: current_user.chat_bg = d['chat_bg']
     else:
         if 'bio' in request.form: current_user.bio = request.form['bio']
@@ -671,7 +662,8 @@ def toggle_2fa():
 @login_required
 def reg_biometric():
     key = str(uuid.uuid4())
-    current_user.biometric_enabled = True; current_user.biometric_key = key; db.session.commit()
+    current_user.biometric_enabled = True; current_user.biometric_key = key
+    db.session.commit()
     return jsonify({'success': True, 'key': key})
 
 @app.route('/api/biometric/login', methods=['POST'])
@@ -683,7 +675,7 @@ def bio_login():
     return jsonify({'success': True, 'redirect': '/chat'})
 
 @app.route('/api/send-otp', methods=['POST'])
-def send_otp_api():
+def send_otp_route():
     email = request.json.get('email', '')
     purpose = request.json.get('purpose', 'login')
     if purpose == 'login' and not User.query.filter_by(email=email).first():
@@ -697,7 +689,7 @@ def send_otp_api():
 @login_required
 def set_theme():
     t = request.json.get('theme', 'dark')
-    if t in ('dark', 'light'): current_user.theme = t; db.session.commit()
+    if t in ('dark','light'): current_user.theme = t; db.session.commit()
     return jsonify({'theme': current_user.theme})
 
 # ── WebRTC Signaling ──────────────────────────────────────────────────────────
@@ -740,8 +732,8 @@ def on_join_dm(d):
     join_room(f'dm_{min(current_user.id,other)}_{max(current_user.id,other)}')
 
 @socketio.on('send_message')
-def handle_msg(d):
-    content = d.get('content', '').strip()
+def handle_message(d):
+    content = d.get('content','').strip()
     if not content: return
     reply_preview = ''
     if d.get('reply_to'):
@@ -752,15 +744,15 @@ def handle_msg(d):
                   reply_to=d.get('reply_to'), reply_preview=reply_preview)
     db.session.add(msg); db.session.commit()
     payload = msg_to_dict(msg)
-    if msg.room_id: emit('new_message', payload, room=f'room_{msg.room_id}')
-    elif msg.dm_to: emit('new_message', payload, room=socket_room_for(None, msg.dm_to, current_user.id))
+    room = socket_room_for(msg.room_id, msg.dm_to, current_user.id)
+    if room: emit('new_message', payload, room=room)
 
 @socketio.on('typing')
-def on_typing(d):
+def handle_typing(d):
     emit('user_typing', {'user': current_user.username, 'typing': d.get('typing')},
          room=d.get('room'), include_self=False)
 
-# ── DB Init (runs on import, so gunicorn workers initialize correctly too) ────
+# ── DB Init (module level, runs under gunicorn too) ────────────────────────────
 with app.app_context():
     try:
         db.create_all()
@@ -769,7 +761,7 @@ with app.app_context():
             db.session.add(g)
             db.session.commit()
     except Exception as e:
-        print(f"DB init warning: {e}")
+        print(f"[DB INIT WARNING] {e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
