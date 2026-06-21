@@ -171,14 +171,14 @@ def verify_otp(email, otp_input, purpose='login'):
     return True, 'OK'
 
 def send_otp_email(email, otp, purpose='login'):
-    """Sends OTP via Resend's HTTPS API instead of raw SMTP. This avoids
-    Render (and most free-tier hosts) blocking outbound SMTP ports — Resend
-    is a normal HTTPS POST request, identical in nature to the Supabase
-    calls already used elsewhere in this app, so it is never blocked."""
+    """Sends OTP via Brevo's HTTPS API (not SMTP, which Render blocks).
+    Brevo allows sending to ANY recipient as long as the sender address is
+    verified in the Brevo dashboard — unlike Resend's test mode which only
+    allows sending to the account owner's own email."""
     labels = {'login': 'Login', 'register': 'Verify Account', '2fa': '2FA'}
-    api_key = os.environ.get('RESEND_API_KEY', '')
+    api_key = os.environ.get('BREVO_API_KEY', '')
     if not api_key:
-        print("[MAIL SKIPPED] No RESEND_API_KEY configured.")
+        print("[MAIL SKIPPED] No BREVO_API_KEY configured.")
         return False
 
     body = f"""
@@ -197,25 +197,29 @@ def send_otp_email(email, otp, purpose='login'):
       </div>
     </div>"""
 
+    sender_email = os.environ.get('BREVO_SENDER_EMAIL', 'nexuschat.auth@gmail.com')
+    sender_name = os.environ.get('BREVO_SENDER_NAME', 'Nexus')
+
     try:
         import requests
         resp = requests.post(
-            "https://api.resend.com/emails",
+            "https://api.brevo.com/v3/smtp/email",
             headers={
-                "Authorization": f"Bearer {api_key}",
+                "api-key": api_key,
                 "Content-Type": "application/json",
+                "Accept": "application/json",
             },
             json={
-                "from": os.environ.get('RESEND_FROM', 'Nexus <onboarding@resend.dev>'),
-                "to": [email],
+                "sender": {"name": sender_name, "email": sender_email},
+                "to": [{"email": email}],
                 "subject": f"Nexus {labels.get(purpose,'')}: {otp}",
-                "html": body,
+                "htmlContent": body,
             },
             timeout=8,
         )
         if resp.status_code in (200, 201):
             return True
-        print(f"[MAIL ERROR] Resend API returned {resp.status_code}: {resp.text}")
+        print(f"[MAIL ERROR] Brevo API returned {resp.status_code}: {resp.text}")
         return False
     except Exception as e:
         print(f"[MAIL ERROR] {e}")
