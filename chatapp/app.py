@@ -1,4 +1,4 @@
-import os, uuid, random, string, json, base64, threading
+import os, uuid, random, string, json, base64
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 load_dotenv()
@@ -8,7 +8,6 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
-from flask_mail import Mail, Message as MailMsg
 from supabase import create_client, Client
 
 app = Flask(__name__)
@@ -18,21 +17,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_pre_ping": True, "pool_recycle": 300}
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
-# ── Mail config — Gmail SMTP ────────────────────────────────────────────────
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', 'noreply@nexus.app')
-
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-mail = Mail(app)
 
 @app.errorhandler(Exception)
 def handle_all_errors(e):
@@ -181,59 +170,55 @@ def verify_otp(email, otp_input, purpose='login'):
     r.used = True; db.session.commit()
     return True, 'OK'
 
-def _send_mail_with_timeout(msg, timeout_seconds=8):
-    """Sends mail in a worker thread with a hard timeout, so a hanging/blocked
-    SMTP connection can NEVER freeze or crash the main request thread."""
-    result = {'ok': False, 'error': None}
-
-    def worker():
-        try:
-            with app.app_context():
-                mail.send(msg)
-            result['ok'] = True
-        except Exception as e:
-            result['error'] = str(e)
-
-    t = threading.Thread(target=worker, daemon=True)
-    t.start()
-    t.join(timeout=timeout_seconds)
-
-    if t.is_alive():
-        # Thread is still stuck trying to connect — abandon it (daemon thread
-        # will be killed when the process exits) and report failure immediately
-        # instead of hanging the whole web worker.
-        print(f"[MAIL TIMEOUT] SMTP connection did not respond within {timeout_seconds}s — abandoning send.")
-        return False
-    if result['error']:
-        print(f"[MAIL ERROR] {result['error']}")
-        return False
-    return result['ok']
-
 def send_otp_email(email, otp, purpose='login'):
+    """Sends OTP via Resend's HTTPS API instead of raw SMTP. This avoids
+    Render (and most free-tier hosts) blocking outbound SMTP ports — Resend
+    is a normal HTTPS POST request, identical in nature to the Supabase
+    calls already used elsewhere in this app, so it is never blocked."""
     labels = {'login': 'Login', 'register': 'Verify Account', '2fa': '2FA'}
-    if not app.config['MAIL_USERNAME'] or not app.config['MAIL_PASSWORD']:
-        print(f"[MAIL SKIPPED] No MAIL_USERNAME/MAIL_PASSWORD configured.")
+    api_key = os.environ.get('RESEND_API_KEY', '')
+    if not api_key:
+        print("[MAIL SKIPPED] No RESEND_API_KEY configured.")
         return False
+
+    body = f"""
+    <div style="font-family:Inter,sans-serif;max-width:460px;margin:0 auto;background:#0a0a1a;border-radius:16px;overflow:hidden">
+      <div style="background:linear-gradient(135deg,#7c3aed,#ec4899);padding:28px;text-align:center">
+        <h1 style="color:white;margin:0;font-size:26px;font-weight:700;letter-spacing:-0.5px">Nexus</h1>
+        <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px">The future of conversation</p>
+      </div>
+      <div style="padding:32px;text-align:center">
+        <h2 style="color:white;margin:0 0 8px;font-size:18px">{labels.get(purpose,'Verification')} Code</h2>
+        <p style="color:rgba(255,255,255,0.5);font-size:13px;margin:0 0 24px">Expires in 10 minutes. Do not share this code.</p>
+        <div style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);border-radius:14px;padding:20px 40px;display:inline-block;margin-bottom:24px">
+          <span style="font-size:40px;font-weight:700;letter-spacing:12px;color:#c4b5fd;font-family:monospace">{otp}</span>
+        </div>
+        <p style="color:rgba(255,255,255,0.3);font-size:12px;margin:0">If you didn't request this, ignore this email.</p>
+      </div>
+    </div>"""
+
     try:
-        body = f"""
-        <div style="font-family:Inter,sans-serif;max-width:460px;margin:0 auto;background:#0a0a1a;border-radius:16px;overflow:hidden">
-          <div style="background:linear-gradient(135deg,#7c3aed,#ec4899);padding:28px;text-align:center">
-            <h1 style="color:white;margin:0;font-size:26px;font-weight:700;letter-spacing:-0.5px">Nexus</h1>
-            <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px">The future of conversation</p>
-          </div>
-          <div style="padding:32px;text-align:center">
-            <h2 style="color:white;margin:0 0 8px;font-size:18px">{labels.get(purpose,'Verification')} Code</h2>
-            <p style="color:rgba(255,255,255,0.5);font-size:13px;margin:0 0 24px">Expires in 10 minutes. Do not share this code.</p>
-            <div style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);border-radius:14px;padding:20px 40px;display:inline-block;margin-bottom:24px">
-              <span style="font-size:40px;font-weight:700;letter-spacing:12px;color:#c4b5fd;font-family:monospace">{otp}</span>
-            </div>
-            <p style="color:rgba(255,255,255,0.3);font-size:12px;margin:0">If you didn't request this, ignore this email.</p>
-          </div>
-        </div>"""
-        msg = MailMsg(f"Nexus {labels.get(purpose,'')}: {otp}", recipients=[email], html=body)
-        return _send_mail_with_timeout(msg, timeout_seconds=8)
+        import requests
+        resp = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": os.environ.get('RESEND_FROM', 'Nexus <onboarding@resend.dev>'),
+                "to": [email],
+                "subject": f"Nexus {labels.get(purpose,'')}: {otp}",
+                "html": body,
+            },
+            timeout=8,
+        )
+        if resp.status_code in (200, 201):
+            return True
+        print(f"[MAIL ERROR] Resend API returned {resp.status_code}: {resp.text}")
+        return False
     except Exception as e:
-        print(f"[MAIL ERROR] Failed to build OTP email: {e}")
+        print(f"[MAIL ERROR] {e}")
         return False
 
 def generate_qr_b64(user):
