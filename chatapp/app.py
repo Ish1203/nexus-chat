@@ -376,7 +376,8 @@ def logout():
 @login_required
 def chat():
     rooms = Room.query.filter(Room.members.any(id=current_user.id)).all()
-    return render_template('chat.html', rooms=rooms, current_user=current_user)
+    rooms_data = [{'id': r.id, 'name': r.name, 'description': r.description} for r in rooms]
+    return render_template('chat.html', rooms=rooms_data, current_user=current_user)
 
 # ── Rooms API ─────────────────────────────────────────────────────────────────
 @app.route('/api/rooms', methods=['POST'])
