@@ -273,7 +273,10 @@ def socket_room_for(room_id=None, dm_to=None, user_a=None, user_b=None):
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 @app.route('/')
-def index(): return redirect(url_for('chat') if current_user.is_authenticated else url_for('login'))
+def index():
+    if current_user.is_authenticated:
+        return redirect(url_for('chat'))
+    return render_template('landing.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

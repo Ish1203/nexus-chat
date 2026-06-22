@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Nexus — The future of conversation</title>
+<meta name="description" content="Nexus is a modern, secure messaging app with voice & video calls, stories, end-to-end style privacy, and everything you need to stay connected.">
+<link rel="icon" href="/static/nexus-favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04040e;--s1:rgba(255,255,255,0.04);--s2:rgba(255,255,255,0.07);
+  --b1:rgba(255,255,255,0.1);--b2:rgba(255,255,255,0.18);
+  --accent:#8b5cf6;--pink:#ec4899;--green:#34d399;--blue:#60a5fa;
+  --text:#fff;--text2:rgba(255,255,255,0.68);--muted:rgba(255,255,255,0.42);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
+a{color:inherit;text-decoration:none}
+img,svg{display:block;max-width:100%}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* ── Ambient background ── */
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(130px);opacity:0.55}
+.o1{width:600px;height:600px;background:radial-gradient(circle,rgba(139,92,246,0.35),transparent 70%);top:-200px;left:-150px}
+.o2{width:520px;height:520px;background:radial-gradient(circle,rgba(236,72,153,0.22),transparent 70%);top:200px;right:-200px}
+.o3{width:480px;height:480px;background:radial-gradient(circle,rgba(96,165,250,0.14),transparent 70%);bottom:-150px;left:30%}
+.grid-overlay{position:absolute;inset:0;background-image:linear-gradient(rgba(139,92,246,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,0.04) 1px,transparent 1px);background-size:64px 64px;-webkit-mask-image:linear-gradient(to bottom,black,transparent 70%);mask-image:linear-gradient(to bottom,black,transparent 70%)}
+
+/* ── Nav ── */
+nav{position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);background:rgba(4,4,14,0.7);border-bottom:1px solid var(--b1)}
+.nav-row{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;max-width:1180px;margin:0 auto}
+.nav-logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px}
+.nav-logo img{width:34px;height:34px;border-radius:10px}
+.nav-links{display:flex;align-items:center;gap:36px}
+.nav-links a{font-size:14px;font-weight:500;color:var(--text2);transition:color 0.2s}
+.nav-links a:hover{color:var(--text)}
+.nav-actions{display:flex;align-items:center;gap:10px}
+.btn-ghost{padding:9px 20px;border-radius:11px;font-size:14px;font-weight:600;color:var(--text2);border:1px solid var(--b1);transition:all 0.2s}
+.btn-ghost:hover{border-color:var(--b2);color:var(--text);background:var(--s2)}
+.btn-solid{padding:10px 22px;border-radius:11px;font-size:14px;font-weight:600;color:#fff;background:linear-gradient(135deg,var(--accent),#7c3aed);box-shadow:0 4px 18px rgba(139,92,246,0.4);transition:all 0.2s}
+.btn-solid:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgba(139,92,246,0.55)}
+.nav-burger{display:none;width:38px;height:38px;border-radius:10px;border:1px solid var(--b1);background:var(--s2);align-items:center;justify-content:center;font-size:16px;color:var(--text2);cursor:pointer}
+.mobile-menu{display:none;position:fixed;inset:0;z-index:200;background:rgba(4,4,14,0.97);backdrop-filter:blur(20px);flex-direction:column;padding:20px 24px}
+.mobile-menu.open{display:flex}
+.mobile-menu-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px}
+.mobile-menu a{font-size:22px;font-weight:600;padding:16px 0;border-bottom:1px solid var(--b1)}
+.mobile-menu .nav-actions{flex-direction:column;margin-top:30px;gap:14px}
+.mobile-menu .btn-ghost,.mobile-menu .btn-solid{text-align:center;padding:14px}
+
+/* ── Hero ── */
+.hero{position:relative;z-index:1;padding:90px 24px 60px;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:1.05fr 0.95fr;gap:50px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:30px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.25);font-size:12.5px;font-weight:600;color:#c4b5fd;margin-bottom:24px}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+h1.hero-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(38px,5.5vw,64px);font-weight:700;line-height:1.05;letter-spacing:-1.5px;margin-bottom:22px}
+h1.hero-title .grad{background:linear-gradient(135deg,#c4b5fd,#f9a8d4 60%,#fbcfe8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:17px;color:var(--text2);max-width:480px;margin-bottom:34px;line-height:1.7}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:36px}
+.cta-primary{display:inline-flex;align-items:center;gap:9px;padding:15px 28px;border-radius:14px;font-size:15.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--accent),#7c3aed);box-shadow:0 8px 30px rgba(139,92,246,0.4);transition:all 0.2s}
+.cta-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(139,92,246,0.55)}
+.cta-secondary{display:inline-flex;align-items:center;gap:9px;padding:15px 26px;border-radius:14px;font-size:15.5px;font-weight:600;color:var(--text);border:1.5px solid var(--b2);transition:all 0.2s}
+.cta-secondary:hover{background:var(--s2);border-color:rgba(139,92,246,0.4)}
+.hero-meta{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--muted)}
+.avatar-stack{display:flex}
+.avatar-stack span{width:30px;height:30px;border-radius:50%;border:2.5px solid var(--bg);background:linear-gradient(135deg,var(--accent),var(--pink));margin-left:-10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.avatar-stack span:first-child{margin-left:0}
+
+/* ── Hero visual: phone mockup with chat ── */
+.hero-visual{position:relative;display:flex;align-items:center;justify-content:center}
+.phone{width:300px;background:rgba(255,255,255,0.03);border:1px solid var(--b2);border-radius:38px;padding:14px;box-shadow:0 40px 100px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.04) inset;backdrop-filter:blur(20px);position:relative;z-index:2}
+.phone-notch{width:90px;height:22px;background:#000;border-radius:14px;margin:0 auto 10px}
+.phone-screen{background:linear-gradient(165deg,#0a0a18,#13091f);border-radius:26px;padding:18px 14px;min-height:430px;display:flex;flex-direction:column;gap:10px}
+.phone-head{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--b1);margin-bottom:6px}
+.phone-av{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--pink));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.phone-head .pname{font-size:13px;font-weight:700}
+.phone-head .pstat{font-size:10.5px;color:var(--green)}
+.bub{max-width:78%;padding:9px 13px;border-radius:15px;font-size:12.5px;line-height:1.5;opacity:0;animation:bubIn 0.5s ease forwards}
+.bub-in{align-self:flex-start;background:rgba(255,255,255,0.07);border:1px solid var(--b1);border-bottom-left-radius:4px}
+.bub-out{align-self:flex-end;background:linear-gradient(135deg,#7c3aed,#8b5cf6);border-bottom-right-radius:4px;box-shadow:0 4px 16px rgba(139,92,246,0.3)}
+.bub-time{font-size:9.5px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:4px}
+.bub-out + .bub-time{align-self:flex-end}
+@keyframes bubIn{from{opacity:0;transform:translateY(10px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.bub:nth-of-type(1){animation-delay:0.3s}
+.bub:nth-of-type(2){animation-delay:0.9s}
+.bub:nth-of-type(3){animation-delay:1.5s}
+.bub:nth-of-type(4){animation-delay:2.1s}
+.typing-bub{align-self:flex-start;display:flex;gap:3px;padding:10px 14px;background:rgba(255,255,255,0.07);border:1px solid var(--b1);border-radius:15px;border-bottom-left-radius:4px;opacity:0;animation:bubIn 0.5s ease forwards;animation-delay:2.6s}
+.typing-bub span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:tdot 1.4s ease-in-out infinite}
+.typing-bub span:nth-child(2){animation-delay:0.2s}
+.typing-bub span:nth-child(3){animation-delay:0.4s}
+@keyframes tdot{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
+.float-card{position:absolute;background:rgba(10,10,24,0.9);border:1px solid var(--b2);border-radius:16px;padding:12px 16px;backdrop-filter:blur(16px);box-shadow:0 20px 50px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;z-index:3;animation:floaty 5s ease-in-out infinite}
+.fc1{top:8%;left:-14%;animation-delay:0s}
+.fc2{bottom:12%;right:-12%;animation-delay:1.5s}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.fc-icon{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+
+/* ── Trust strip ── */
+.trust-strip{position:relative;z-index:1;padding:36px 24px;border-top:1px solid var(--b1);border-bottom:1px solid var(--b1)}
+.trust-row{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-around;flex-wrap:wrap;gap:24px}
+.trust-item{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted);font-weight:500}
+.trust-item i{color:var(--accent);font-size:16px}
+
+/* ── Features ── */
+.section{position:relative;z-index:1;padding:100px 24px}
+.section-head{text-align:center;max-width:620px;margin:0 auto 60px}
+.section-eyebrow{font-size:12.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+h2.section-title{font-family:'Space Grotesk',sans-serif;font-size:clamp(28px,3.8vw,42px);font-weight:700;letter-spacing:-1px;margin-bottom:16px}
+.section-sub{font-size:16px;color:var(--text2);line-height:1.7}
+.feature-grid{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.fcard{background:var(--s1);border:1px solid var(--b1);border-radius:22px;padding:32px 26px;transition:all 0.25s}
+.fcard:hover{background:var(--s2);border-color:rgba(139,92,246,0.3);transform:translateY(-4px)}
+.fcard-icon{width:50px;height:50px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:20px}
+.fcard h3{font-size:17px;font-weight:700;margin-bottom:10px}
+.fcard p{font-size:14px;color:var(--text2);line-height:1.65}
+
+/* ── Showcase (alternating) ── */
+.showcase{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:110px}
+.showcase-row{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.showcase-row.rev .showcase-text{order:2}
+.showcase-row.rev .showcase-visual{order:1}
+.showcase-eyebrow{font-size:12.5px;font-weight:700;color:var(--pink);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:14px}
+.showcase-text h3{font-family:'Space Grotesk',sans-serif;font-size:clamp(24px,3vw,32px);font-weight:700;letter-spacing:-0.5px;margin-bottom:16px;line-height:1.2}
+.showcase-text p{font-size:15.5px;color:var(--text2);line-height:1.75;margin-bottom:24px}
+.showcase-list{display:flex;flex-direction:column;gap:12px}
+.showcase-list li{display:flex;align-items:flex-start;gap:10px;font-size:14.5px;color:var(--text2);list-style:none}
+.showcase-list i{color:var(--green);margin-top:3px;flex-shrink:0}
+.showcase-visual{position:relative;border-radius:24px;overflow:hidden;background:var(--s1);border:1px solid var(--b1);padding:36px;min-height:320px;display:flex;align-items:center;justify-content:center}
+
+/* ── CTA banner ── */
+.cta-banner{position:relative;z-index:1;max-width:1180px;margin:0 auto 100px;padding:64px 48px;border-radius:32px;background:linear-gradient(135deg,rgba(139,92,246,0.18),rgba(236,72,153,0.12));border:1px solid rgba(139,92,246,0.3);text-align:center;overflow:hidden}
+.cta-banner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 0%,rgba(139,92,246,0.25),transparent);pointer-events:none}
+.cta-banner h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(26px,3.6vw,38px);font-weight:700;letter-spacing:-1px;margin-bottom:14px;position:relative}
+.cta-banner p{font-size:16px;color:var(--text2);margin-bottom:32px;position:relative}
+.cta-banner .hero-ctas{justify-content:center;position:relative}
+
+/* ── Footer ── */
+footer{position:relative;z-index:1;border-top:1px solid var(--b1);padding:48px 24px 28px}
+.footer-row{max-width:1180px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+.footer-logo{display:flex;align-items:center;gap:9px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px}
+.footer-logo img{width:26px;height:26px;border-radius:7px}
+.footer-links{display:flex;gap:28px;flex-wrap:wrap}
+.footer-links a{font-size:13.5px;color:var(--muted);transition:color 0.2s}
+.footer-links a:hover{color:var(--text2)}
+.footer-copy{font-size:12.5px;color:var(--muted);text-align:center;margin-top:30px;padding-top:24px;border-top:1px solid var(--b1)}
+
+/* ── Responsive ── */
+@media (max-width:880px){
+  .nav-links{display:none}
+  .nav-actions{display:none}
+  .nav-burger{display:flex}
+  .hero{grid-template-columns:1fr;padding-top:50px;text-align:center}
+  .hero-sub{margin-left:auto;margin-right:auto}
+  .hero-ctas{justify-content:center}
+  .hero-meta{justify-content:center}
+  .hero-visual{margin-top:20px}
+  .float-card{display:none}
+  .feature-grid{grid-template-columns:1fr}
+  .showcase-row,.showcase-row.rev{grid-template-columns:1fr;gap:30px}
+  .showcase-row.rev .showcase-text,.showcase-row.rev .showcase-visual{order:initial}
+  .showcase{gap:70px}
+  .section{padding:70px 20px}
+  .cta-banner{padding:48px 24px;margin-bottom:70px}
+  .trust-row{justify-content:center;gap:18px}
+}
+@media (max-width:480px){
+  .phone{width:260px}
+  .hero{padding:40px 16px 30px}
+  h1.hero-title{font-size:34px}
+}
+</style>
+</head>
+<body>
+
+<div class="ambient">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+  <div class="grid-overlay"></div>
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-row">
+    <a href="/" class="nav-logo">
+      <img src="/static/nexus-logo.svg" alt="Nexus">
+      Nexus
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#calls">Calls</a>
+      <a href="#security">Security</a>
+    </div>
+    <div class="nav-actions">
+      <a href="/login" class="btn-ghost">Sign In</a>
+      <a href="/register" class="btn-solid">Get Started</a>
+    </div>
+    <button class="nav-burger" onclick="document.getElementById('mobileMenu').classList.add('open')">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu-head">
+    <a href="/" class="nav-logo"><img src="/static/nexus-logo.svg" alt="Nexus">Nexus</a>
+    <button class="nav-burger" onclick="document.getElementById('mobileMenu').classList.remove('open')">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  <a href="#features" onclick="document.getElementById('mobileMenu').classList.remove('open')">Features</a>
+  <a href="#calls" onclick="document.getElementById('mobileMenu').classList.remove('open')">Calls</a>
+  <a href="#security" onclick="document.getElementById('mobileMenu').classList.remove('open')">Security</a>
+  <div class="nav-actions">
+    <a href="/login" class="btn-ghost">Sign In</a>
+    <a href="/register" class="btn-solid">Get Started</a>
+  </div>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="eyebrow"><span class="dot"></span> Now with voice, video & stories</div>
+    <h1 class="hero-title">Talk like it's<br>just <span class="grad">you two.</span></h1>
+    <p class="hero-sub">Nexus is messaging built for real conversation — fast, private, and packed with everything you actually use: calls, stories, reactions, and rooms that feel like home.</p>
+    <div class="hero-ctas">
+      <a href="/register" class="cta-primary"><i class="fa-solid fa-user-plus"></i> Create Free Account</a>
+      <a href="/login" class="cta-secondary"><i class="fa-solid fa-right-to-bracket"></i> Sign In</a>
+    </div>
+    <div class="hero-meta">
+      <div class="avatar-stack">
+        <span>A</span><span>R</span><span>K</span><span>+</span>
+      </div>
+      <span>Join thousands already chatting on Nexus</span>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="float-card fc1">
+      <div class="fc-icon" style="background:rgba(52,211,153,0.15);color:var(--green)"><i class="fa-solid fa-lock"></i></div>
+      <span>Private by design</span>
+    </div>
+    <div class="float-card fc2">
+      <div class="fc-icon" style="background:rgba(96,165,250,0.15);color:var(--blue)"><i class="fa-solid fa-video"></i></div>
+      <span>HD video calls</span>
+    </div>
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="phone-head">
+          <div class="phone-av">R</div>
+          <div>
+            <div class="pname">Riya</div>
+            <div class="pstat">● Online</div>
+          </div>
+        </div>
+        <div class="bub bub-in">Hey! Did you see the new Nexus update? 👀</div>
+        <div class="bub bub-out">Yesss the stories feature is so good</div>
+        <div class="bub bub-in">Right?? And the call quality is crystal clear now</div>
+        <div class="bub bub-out">Calling you in 5 📞</div>
+        <div class="typing-bub"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Trust strip -->
+<div class="trust-strip">
+  <div class="trust-row">
+    <div class="trust-item"><i class="fa-solid fa-shield-halved"></i> Two-factor authentication</div>
+    <div class="trust-item"><i class="fa-solid fa-fingerprint"></i> Biometric login</div>
+    <div class="trust-item"><i class="fa-solid fa-bolt"></i> Real-time messaging</div>
+    <div class="trust-item"><i class="fa-solid fa-cloud"></i> Synced everywhere</div>
+  </div>
+</div>
+
+<!-- Features grid -->
+<section class="section" id="features">
+  <div class="section-head">
+    <div class="section-eyebrow">Everything in one place</div>
+    <h2 class="section-title">Built for how you actually talk</h2>
+    <p class="section-sub">No bloat, no clutter — just the features people actually reach for, done properly.</p>
+  </div>
+  <div class="feature-grid">
+    <div class="fcard">
+      <div class="fcard-icon" style="background:rgba(139,92,246,0.15);color:var(--accent)"><i class="fa-solid fa-message"></i></div>
+      <h3>Real-time messaging</h3>
+      <p>Instant delivery, typing indicators, read receipts, and reactions — conversations that feel alive.</p>
+    </div>
+    <div class="fcard">
+      <div class="fcard-icon" style="background:rgba(236,72,153,0.15);color:var(--pink)"><i class="fa-solid fa-circle-play"></i></div>
+      <h3>Stories that disappear</h3>
+      <p>Share a moment for 24 hours — text, photo, or video — without it living on your profile forever.</p>
+    </div>
+    <div class="fcard">
+      <div class="fcard-icon" style="background:rgba(96,165,250,0.15);color:var(--blue)"><i class="fa-solid fa-video"></i></div>
+      <h3>Voice & video calls</h3>
+      <p>Crystal-clear calls powered by peer-to-peer connections — no awkward lag, no dropped frames.</p>
+    </div>
+    <div class="fcard">
+      <div class="fcard-icon" style="background:rgba(52,211,153,0.15);color:var(--green)"><i class="fa-solid fa-users"></i></div>
+      <h3>Group rooms</h3>
+      <p>Spin up a room for your friends, your team, or your fandom — public or invite-only.</p>
+    </div>
+    <div class="fcard">
+      <div class="fcard-icon" style="background:rgba(251,191,36,0.15);color:#fbbf24"><i class="fa-solid fa-eye"></i></div>
+      <h3>View-once photos</h3>
+      <p>Send a photo that disappears after it's opened — for the moments that don't need a permanent home.</p>
+    </div>
+    <div class="fcard">
+      <div class="fcard-icon" style="background:rgba(244,114,182,0.15);color:#f472b6"><i class="fa-solid fa-microphone"></i></div>
+      <h3>Voice notes</h3>
+      <p>Say it instead of typing it — record and send in one tap, right from the chat box.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Showcase: Calls -->
+<section class="section" id="calls">
+  <div class="showcase">
+    <div class="showcase-row">
+      <div class="showcase-text">
+        <div class="showcase-eyebrow">Calls</div>
+        <h3>Pick up where texting leaves off</h3>
+        <p>Some things need a voice, not a paragraph. Nexus calls connect directly between you and the other person — no server in the middle slowing things down.</p>
+        <ul class="showcase-list">
+          <li><i class="fa-solid fa-circle-check"></i> One-tap voice or video, right from any chat</li>
+          <li><i class="fa-solid fa-circle-check"></i> Peer-to-peer connection for lower latency</li>
+          <li><i class="fa-solid fa-circle-check"></i> Mute, switch camera, all from one screen</li>
+        </ul>
+      </div>
+      <div class="showcase-visual">
+        <div style="text-align:center">
+          <div style="width:90px;height:90px;border-radius:28px;background:linear-gradient(135deg,var(--accent),var(--pink));display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;margin:0 auto 18px;box-shadow:0 0 50px rgba(139,92,246,0.4)">R</div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:4px">Riya Sharma</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Connected · 04:12</div>
+          <div style="display:flex;gap:14px;justify-content:center">
+            <div style="width:48px;height:48px;border-radius:50%;background:var(--s2);border:1px solid var(--b1);display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-microphone" style="font-size:15px"></i></div>
+            <div style="width:48px;height:48px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(239,68,68,0.4)"><i class="fa-solid fa-phone-slash" style="font-size:15px;color:#fff"></i></div>
+            <div style="width:48px;height:48px;border-radius:50%;background:var(--s2);border:1px solid var(--b1);display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-video" style="font-size:15px"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="showcase-row rev">
+      <div class="showcase-text">
+        <div class="showcase-eyebrow">Security</div>
+        <h3 id="security">Your account, locked down properly</h3>
+        <p>Real security shouldn't be a hassle. Nexus gives you the same tools the big apps use — without burying them in settings menus.</p>
+        <ul class="showcase-list">
+          <li><i class="fa-solid fa-circle-check"></i> Email OTP verification on every new account</li>
+          <li><i class="fa-solid fa-circle-check"></i> Optional two-factor authentication on login</li>
+          <li><i class="fa-solid fa-circle-check"></i> Biometric sign-in on supported devices</li>
+          <li><i class="fa-solid fa-circle-check"></i> Block and report, right from any chat</li>
+        </ul>
+      </div>
+      <div class="showcase-visual">
+        <div style="width:100%;max-width:280px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--s2);border:1px solid var(--b1);border-radius:13px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600"><i class="fa-solid fa-shield-halved" style="color:var(--accent)"></i> Two-Factor Auth</div>
+            <div style="width:38px;height:21px;background:var(--accent);border-radius:20px;position:relative"><div style="width:15px;height:15px;background:#fff;border-radius:50%;position:absolute;right:3px;top:3px"></div></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--s2);border:1px solid var(--b1);border-radius:13px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600"><i class="fa-solid fa-fingerprint" style="color:var(--green)"></i> Biometric Login</div>
+            <div style="width:38px;height:21px;background:var(--accent);border-radius:20px;position:relative"><div style="width:15px;height:15px;background:#fff;border-radius:50%;position:absolute;right:3px;top:3px"></div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.25);border-radius:13px;font-size:12px;color:var(--green)">
+            <i class="fa-solid fa-circle-check"></i> Your account is fully secured
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Banner -->
+<section class="wrap">
+  <div class="cta-banner">
+    <h2>Ready to actually enjoy messaging again?</h2>
+    <p>Free to join. No credit card. Just real conversation.</p>
+    <div class="hero-ctas">
+      <a href="/register" class="cta-primary"><i class="fa-solid fa-user-plus"></i> Create Free Account</a>
+      <a href="/login" class="cta-secondary"><i class="fa-solid fa-right-to-bracket"></i> Sign In</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-row">
+    <a href="/" class="footer-logo"><img src="/static/nexus-logo.svg" alt="Nexus">Nexus</a>
+    <div class="footer-links">
+      <a href="#features">Features</a>
+      <a href="#calls">Calls</a>
+      <a href="#security">Security</a>
+      <a href="/login">Sign In</a>
+      <a href="/register">Get Started</a>
+    </div>
+  </div>
+  <div class="footer-copy">© 2026 Nexus. The future of conversation.</div>
+</footer>
+
+</body>
+</html>

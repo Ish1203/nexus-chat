@@ -386,12 +386,71 @@ video#localVid{width:180px;height:140px;border-radius:14px;object-fit:cover;posi
   transform:translateY(10px) scale(0.96);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
   box-shadow:0 20px 50px rgba(0,0,0,0.4);display:flex;align-items:center;gap:10px;max-width:320px}
 .toast.show{opacity:1;transform:translateY(0) scale(1)}
+
+/* ═══ MOBILE RESPONSIVE ═══ */
+.mobile-back{display:none;width:34px;height:34px;background:none;border:none;border-radius:9px;color:var(--text);cursor:pointer;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.mobile-rail-toggle{display:none}
+
+@media (max-width: 880px){
+  :root{--rail-w:0px;--sb-w:100%}
+  body{overflow:hidden}
+
+  .rail{position:fixed;left:0;top:0;bottom:0;width:72px;z-index:50;transform:translateX(-100%);transition:transform 0.25s ease;box-shadow:8px 0 30px rgba(0,0,0,0.4)}
+  .rail.mobile-open{transform:translateX(0)}
+  .mobile-rail-toggle{display:flex;width:38px;height:38px;background:var(--s2);border:1px solid var(--b1);border-radius:11px;align-items:center;justify-content:center;font-size:16px;color:var(--text2);cursor:pointer;flex-shrink:0}
+  .rail-scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:45}
+  .rail-scrim.show{display:block}
+
+  .sidebar{position:fixed;inset:0;z-index:20;width:100%}
+  .sidebar.mobile-hidden{display:none}
+
+  .chat-area{position:fixed;inset:0;z-index:25;width:100%;display:none}
+  .chat-area.mobile-active{display:flex}
+  .no-chat{display:none !important}
+
+  .mobile-back{display:flex}
+
+  .rpanel{position:fixed;inset:0;z-index:60;width:100%}
+  .rpanel.open{display:flex}
+
+  .modal{width:92vw;padding:22px}
+
+  .sb-title{font-size:16px}
+  .ci{padding:9px}
+  .cav{width:42px;height:42px}
+  .msgs-area{padding:14px}
+  .bwrap{max-width:80%}
+  .input-zone{padding:10px 12px}
+  .ibtns{gap:2px}
+  .ib2{width:36px;height:36px;font-size:14px}
+  #msgIn{padding:10px 14px}
+  .send-btn{width:40px;height:40px}
+  .chat-head{padding:10px 12px}
+  .ch-acts{gap:1px}
+  .hb{width:32px;height:32px;font-size:14px}
+
+  video#localVid{width:120px;height:90px;bottom:140px;right:14px}
+  .call-av{width:90px;height:90px}
+  .call-name{font-size:21px}
+
+  .story-strip{padding:10px}
+  .sring{width:44px;height:44px}
+}
+
+@media (max-width: 420px){
+  .bwrap{max-width:85%}
+  .modal{padding:18px}
+  .prof-av{width:64px;height:64px}
+}
 </style>
 </head>
 <body>
 
+<!-- Mobile rail scrim -->
+<div class="rail-scrim" id="railScrim" onclick="closeMobileRail()"></div>
+
 <!-- Icon Rail -->
-<div class="rail">
+<div class="rail" id="iconRail">
   <div class="rail-logo" onclick="window.location='/'"><img src="/static/nexus-logo.svg" alt="N" onerror="this.parentElement.innerHTML='<span style=font-size:20px>💬</span>'"></div>
   <button class="rb on" id="rbDMs" onclick="switchPanel('dms')"><i class="fa-solid fa-message"></i><span class="tip">Direct Messages</span></button>
   <button class="rb" id="rbRooms" onclick="switchPanel('rooms')"><i class="fa-solid fa-users"></i><span class="tip">Rooms</span></button>
@@ -408,9 +467,12 @@ video#localVid{width:180px;height:140px;border-radius:14px;object-fit:cover;posi
 </div>
 
 <!-- Sidebar -->
-<div class="sidebar">
+<div class="sidebar" id="sidebarPanel">
   <div class="sb-head">
-    <div class="sb-title" id="sbTitle">Messages</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <button class="mobile-rail-toggle" onclick="openMobileRail()"><i class="fa-solid fa-bars"></i></button>
+      <div class="sb-title" id="sbTitle" style="margin-bottom:0">Messages</div>
+    </div>
     <div class="sw"><i class="si fa-solid fa-magnifying-glass"></i>
       <input id="srch" type="text" placeholder="Search…" autocomplete="off">
       <div class="drop" id="srchDrop"></div>
@@ -434,6 +496,7 @@ video#localVid{width:180px;height:140px;border-radius:14px;object-fit:cover;posi
   </div>
   <div id="chatMain" style="display:none;flex-direction:column;height:100%">
     <div class="chat-head">
+      <button class="mobile-back" onclick="closeMobileChat()"><i class="fa-solid fa-arrow-left"></i></button>
       <div class="ch-av" id="chAv"></div>
       <div class="ch-info"><div class="ch-name" id="chName"></div><div class="ch-sub" id="chSub"></div></div>
       <div class="ch-acts">
@@ -632,6 +695,7 @@ function switchPanel(tab){
   ['dms','rooms','explore'].forEach(t=>{const el=document.getElementById('rb'+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.classList.toggle('on',t===tab)});
   document.getElementById('sbTitle').textContent={dms:'Messages',rooms:'My Rooms',explore:'Explore'}[tab];
   renderSidebar(tab);
+  closeMobileRail();
 }
 
 function renderSidebar(tab){
@@ -714,7 +778,29 @@ async function joinRoom(id,name){
   switchPanel('rooms');openRoom(id,name);
 }
 
-function showChat(){document.getElementById('noChat').style.display='none';document.getElementById('chatMain').style.display='flex'}
+function showChat(){
+  document.getElementById('noChat').style.display='none';
+  document.getElementById('chatMain').style.display='flex';
+  // Mobile: switch from sidebar list to full-screen chat
+  if(window.innerWidth<=880){
+    document.getElementById('chatArea').classList.add('mobile-active');
+    document.getElementById('sidebarPanel').classList.add('mobile-hidden');
+  }
+}
+
+function closeMobileChat(){
+  document.getElementById('chatArea').classList.remove('mobile-active');
+  document.getElementById('sidebarPanel').classList.remove('mobile-hidden');
+}
+
+function openMobileRail(){
+  document.getElementById('iconRail').classList.add('mobile-open');
+  document.getElementById('railScrim').classList.add('show');
+}
+function closeMobileRail(){
+  document.getElementById('iconRail').classList.remove('mobile-open');
+  document.getElementById('railScrim').classList.remove('show');
+}
 
 async function loadMsgs(){
   const area=document.getElementById('msgsArea');
